@@ -1,3 +1,7 @@
 .terraform/*
 terraform.tfvars
 terraform.tfstate
+terraform.tfstate.backup
+*.pem
+heptio-authenticator-aws.kubeconfig
+env.vars

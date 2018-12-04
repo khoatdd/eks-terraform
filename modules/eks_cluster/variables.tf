@@ -56,12 +56,3 @@ variable "public_subnet_ids" {
   type        = "list"
   description = "The public subnets to use"
 }
-
-########################### Service Role ###################################
-variable "eks_service_role" {
-  description = "eks service role name"
-}
-
-variable "eks_node_role" {
-  description = "eks node role name"
-}
