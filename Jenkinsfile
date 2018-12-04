@@ -82,22 +82,24 @@ pipeline {
         stage('Configure EKS Cluster') {
             when { expression { params.TERRAFORM_COMMAND == 'Configure' } }
             steps {
-                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'docker-reg-cred',
-                          usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-                    script {
-                        def eksnoderole = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_node_role")
-                        sh """
-                            #!/bin/bash
-                            ekscluster="${params.EKS_CLUSTER_NAME}"
-                            eksnoderole="${eksnoderole}"
-                            dockerrepo="docker.io"
-                            dockeremail="email"
-                            eksregion="${params.REGION}"             
-                            chmod +x ./config.sh
-                            ./config.sh
-                        """
+                withEnv(["PATH+TF=${tool 'terraform-0.11.8'}"]) {
+                    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'docker-reg-cred',
+                            usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+                        script {
+                            def eksnoderole = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_node_role")
+                            sh """
+                                #!/bin/bash
+                                ekscluster="${params.EKS_CLUSTER_NAME}"
+                                eksnoderole="${eksnoderole}"
+                                dockerrepo="docker.io"
+                                dockeremail="email"
+                                eksregion="${params.REGION}"             
+                                chmod +x ./config.sh
+                                ./config.sh
+                            """
+                        }
                     }
-                }
+                }    
             }
         }
     }
