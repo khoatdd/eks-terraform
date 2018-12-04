@@ -21,12 +21,7 @@ data:
       username: system:node:{{EC2PrivateDNSName}}
       groups:
         - system:bootstrappers
-        - system:nodes
-  mapUsers: |
-    - userarn: $eksadminrole
-      username: admin
-      groups:
-        - system:masters' > aws-auth-cm.yaml
+        - system:nodes' > aws-auth-cm.yaml
 
 kubectl apply -f aws-auth-cm.yaml
 kubectl --namespace kube-system create serviceaccount tiller || true
