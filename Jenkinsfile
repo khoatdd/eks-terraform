@@ -15,6 +15,8 @@ pipeline {
     environment {
         AWS_TIMEOUT_SECONDS             = 600
         TF_STATE_ENV                    = "${params.NAME_PREFIX}-eks-deployment"
+        AWS_ACCESS_KEY                  = credentials("aws-access-key")
+        AWS_SECRET_ACCESS_KEY           = credentials("aws-secret-access-key")
         TF_VAR_access_key               = credentials("aws-access-key")
         TF_VAR_secret_access_key        = credentials("aws-secret-access-key")
         TF_VAR_name_prefix              = "${params.NAME_PREFIX}"
