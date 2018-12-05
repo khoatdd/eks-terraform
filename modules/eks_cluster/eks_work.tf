@@ -46,7 +46,7 @@ data "aws_ami" "eks-worker" {
   tags = "${
     map(
     "Name", "${var.name_prefix}-eks-node-sg",
-    "kubernetes.io/cluster/${var.eks_cluster}", "owned",
+    "kubernetes.io/cluster/${var.name_prefix}-cluster", "owned",
     )
   }"
 
@@ -58,7 +58,7 @@ locals {
   node-userdata = <<USERDATA
 #!/bin/bash
 set -o xtrace
-/etc/eks/bootstrap.sh ${var.eks_cluster}
+/etc/eks/bootstrap.sh ${var.name_prefix}-cluster
 USERDATA
 }
 
@@ -101,7 +101,7 @@ resource "aws_autoscaling_group" "eks" {
   }
 
   tag {
-    key                 = "kubernetes.io/cluster/${var.eks_cluster}"
+    key                 = "kubernetes.io/cluster/${var.name_prefix}-cluster"
     value               = "owned"
     propagate_at_launch = true
   }

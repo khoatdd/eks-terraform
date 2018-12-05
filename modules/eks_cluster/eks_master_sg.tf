@@ -13,7 +13,7 @@ resource "aws_security_group" "cluster" {
   tags = "${
     map(
     "Name", "${var.name_prefix}-eks-master-sg",
-    "kubernetes.io/cluster/${var.eks_cluster}", "owned",
+    "kubernetes.io/cluster/${var.name_prefix}-cluster", "owned",
     )
   }"
 }

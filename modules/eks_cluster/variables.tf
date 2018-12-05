@@ -5,11 +5,6 @@ variable "region" {
 
 variable "name_prefix" {}
 
-########################### EKS Cluster ##############################
-variable "eks_cluster" {
-  description = "eks cluster name"
-}
-
 ########################### VPC Config ###############################
 variable "eks_vpc" {
   description = "VPC for eks Cluster"

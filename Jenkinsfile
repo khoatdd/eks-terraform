@@ -5,7 +5,6 @@ pipeline {
         choice(name: 'TERRAFORM_COMMAND', choices: 'Create\nDestroy\nConfigure', description: 'Specify whether Terraform should create, destroy, or configure the EKS cluster.')
         string(name: 'NAME_PREFIX',defaultValue: 'zenrooms', description: 'Name prefix for resources. Must be unique among all deployments')
         string(name: 'REGION', defaultValue: 'us-east-2', description: 'AWS Region.')
-        string(name: 'EKS_CLUSTER_NAME', defaultValue: 'default', description: 'EKS cluster name. Must be unique.')
         string(name: 'MIN_CAPACITY', defaultValue: '1', description: 'Minimum numbers of nodes.')
         string(name: 'MAX_CAPACITY', defaultValue: '4', description: 'Maximum numbers of nodes.')
         string(name: 'DESIRED_CAPACITY', defaultValue: '2', description: 'Desired numbers of nodes.')
@@ -20,7 +19,6 @@ pipeline {
         TF_VAR_secret_access_key        = credentials("aws-secret-access-key")
         TF_VAR_name_prefix              = "${params.NAME_PREFIX}"
         TF_VAR_region                   = "${params.REGION}"
-        TF_VAR_eks_cluster              = "${params.EKS_CLUSTER_NAME}"
         TF_VAR_min_capacity             = "${params.MIN_CAPACITY}"
         TF_VAR_max_capacity             = "${params.MAX_CAPACITY}"
         TF_VAR_desired_capacity         = "${params.DESIRED_CAPACITY}"
@@ -48,7 +46,7 @@ pipeline {
                     withEnv(["PATH+TF=${tool 'terraform-0.11.8'}"]) {
                         sh 'if [ -e terraform.tfstate ] ; then rm terraform.tfstate; fi'
                         sh 'echo "Starting EKS creation"'
-                        sh "terraform init -reconfigure"
+                        sh "terraform init -reconfigure -backend-config=\"workspace_key_prefix=${TF_STATE_ENV}\""
                         sh 'terraform workspace list'
                         sh "[ \$(terraform workspace list | grep -cw ${TF_STATE_ENV}) -lt 1 ] && terraform workspace new ${TF_STATE_ENV} || echo found Terraform environment ${TF_STATE_ENV}"
                         sh 'terraform workspace select ${TF_STATE_ENV}'
@@ -66,7 +64,7 @@ pipeline {
             steps {
                 dir('.'){
                     withEnv(["PATH+TF=${tool 'terraform-0.11.8'}"]) {
-                        sh "terraform init -reconfigure"
+                        sh "terraform init -reconfigure -backend-config=\"workspace_key_prefix=${TF_STATE_ENV}\""
                         sh "terraform workspace list"
                         sh "terraform workspace select ${TF_STATE_ENV} || terraform workspace new ${TF_STATE_ENV}"
                         sh 'terraform show'
