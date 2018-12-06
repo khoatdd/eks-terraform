@@ -38,3 +38,14 @@ resource "aws_security_group_rule" "node-ingress-cluster" {
   to_port                  = 65535
   type                     = "ingress"
 }
+
+
+resource "aws_security_group_rule" "node-ingress-https-cluster" {
+  description              = "Allow worker Kubelets and pods to receive communication from the cluster control plane"
+  from_port                = 443
+  protocol                 = "tcp"
+  security_group_id        = "${aws_security_group.node.id}"
+  source_security_group_id = "${aws_security_group.cluster.id}"
+  to_port                  = 443
+  type                     = "ingress"
+}

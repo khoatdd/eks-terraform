@@ -17,6 +17,7 @@ pipeline {
         TF_STATE_ENV                    = "${params.NAME_PREFIX}-eks-deployment"
         AWS_ACCESS_KEY                  = credentials("aws-access-key")
         AWS_SECRET_ACCESS_KEY           = credentials("aws-secret-access-key")
+        AWS_DEFAULT_REGION              = "${params.REGION}"
         TF_VAR_access_key               = credentials("aws-access-key")
         TF_VAR_secret_access_key        = credentials("aws-secret-access-key")
         TF_VAR_name_prefix              = "${params.NAME_PREFIX}"
@@ -59,43 +60,45 @@ pipeline {
                         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'docker-reg-cred',
                                 usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
                             script {
-                                def ekscluster  = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_cluster")
-                                def eksnoderole = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_node_role")
+                                def ekscluster  = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_cluster").trim()
+                                def eksnoderole = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_node_role").trim()
                                 def eksregion   = "${params.REGION}"
+                                def dockerrepo  = "docker.io"
+                                def dockeremail = "email"                         
                                 sh """
                                     #!/bin/bash
-                                    dockerrepo="docker.io"
-                                    dockeremail="email"
-
                                     aws-iam-authenticator init -i ${ekscluster}
-                                    aws eks update-kubeconfig --name ${ekscluster} --r ${eksregion}
+                                    aws eks update-kubeconfig --name ${ekscluster}
 
                                     kubectl delete secrets regcred || true
-                                    docker login -u ${USERNAME} -p ${PASSWORD} docker.io
-                                    kubectl create secret docker-registry regcred --docker-server=\$dockerrepo --docker-username=${USERNAME} --docker-password=${PASSWORD} --docker-email=\$dockeremail || true
-
-                                    cd
+                                    kubectl create secret docker-registry regcred --docker-server=${dockerrepo} --docker-username=${USERNAME} --docker-password=${PASSWORD} --docker-email=${dockeremail} || true
 
                                     echo '
 apiVersion: v1
 kind: ConfigMap
 metadata:
-    name: aws-auth
-    namespace: kube-system
+  name: aws-auth
+  namespace: kube-system
 data:
-    mapRoles: |
+  mapRoles: |
     - rolearn: ${eksnoderole}
-        username: system:node:{{EC2PrivateDNSName}}
-        groups:
+      username: system:node:{{EC2PrivateDNSName}}
+      groups:
         - system:bootstrappers
         - system:nodes' > aws-auth-cm.yaml
-
+                                    kubectl get nodes
                                     kubectl apply -f aws-auth-cm.yaml
                                     kubectl --namespace kube-system create serviceaccount tiller || true
                                     kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller || true
-                                    /usr/local/bin/helm init --service-account tiller || true
-                                    /usr/local/bin/helm init --upgrade --service-account tiller || true
+                                    helm init --service-account tiller || true
+                                    helm init --upgrade --service-account tiller || true
                                     kubectl patch deployment tiller-deploy --namespace=kube-system --type=json --patch='[{"op": "add", "path": "/spec/template/spec/containers/0/command", "value": ["/tiller", "--listen=localhost:44134"]}]' || true
+
+
+                                    kubectl  create -f storage-class.yaml
+                                    kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+                                    helm install --name external-dns --namespace kube-system --set aws.region=${params.REGION},aws.zoneType=private,rbac.create=true stable/external-dns
                                 """
                             }
                         }

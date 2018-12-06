@@ -118,3 +118,9 @@ resource "aws_route_table_association" "private_subnet_2_association" {
   subnet_id      = "${aws_subnet.private_subnet_2.id}"
   route_table_id = "${aws_route_table.private_route.id}"
 }
+
+
+resource "aws_route53_zone_association" "secondary" {
+  zone_id = "${var.hosted_zone_id}"
+  vpc_id  = "${aws_vpc.vpc.id}"
+}
