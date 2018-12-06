@@ -1,0 +1,1 @@
+helm install -n mongodb --set mongodbUsername=username,mongodbPassword=password,mongodbDatabase=todos stable/mongodb

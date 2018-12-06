@@ -1,0 +1,53 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: "vuejs"
+  labels:
+    app: "vuejs"
+    role: "frontend"
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:us-east-2:704737384310:certificate/e71cf718-221d-451e-86d0-90d99025e90c
+    external-dns.alpha.kubernetes.io/hostname: todo.dev.ienergycloud.io
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443,8443"
+spec:
+  ports:
+  - port: 443
+    targetPort: "vuejs-port"
+  selector:
+    app: "vuejs"
+    role: "frontend"
+  type: LoadBalancer
+
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: "vuejs"
+  labels:
+    app: "vuejs"
+    role: "frontend"
+spec:
+  replicas: 1
+  selector:
+    app: "vuejs"
+    role: "frontend"
+  template:
+    metadata:
+      name: "vuejs"
+      labels:
+        app: "vuejs"
+        role: "frontend"
+    spec:
+      containers:
+      - name: vuejs
+        image: khoatdd/vuejs-todo:latest
+        imagePullPolicy: Always
+        ports:
+           - name : "vuejs-port"
+             containerPort: 80
+        resources:
+          requests:
+            cpu: 200m
+      imagePullSecrets:
+      - name: regcred

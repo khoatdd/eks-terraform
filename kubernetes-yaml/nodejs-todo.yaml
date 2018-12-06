@@ -1,0 +1,65 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: "api-service"
+  labels:
+    app: "nodejs"
+    role: "backend"
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:us-east-2:704737384310:certificate/e71cf718-221d-451e-86d0-90d99025e90c
+    external-dns.alpha.kubernetes.io/hostname: api-service.dev.ienergycloud.io
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443,8443"
+spec:
+  ports:
+  - port: 443
+    targetPort: "nodejs-port"
+  selector:
+    app: "nodejs"
+    role: "backend"
+  type: LoadBalancer
+
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: "nodejs"
+  labels:
+    app: "nodejs"
+    role: "backend"
+spec:
+  replicas: 1
+  selector:
+    app: "nodejs"
+    role: "backend"
+  template:
+    metadata:
+      name: "nodejs"
+      labels:
+        app: "nodejs"
+        role: "backend"
+    spec:
+      containers:
+      - name: nodejs
+        image: khoatdd/nodejs-todo:latest
+        env:
+        - name: MONGO_USR
+          value: username
+        - name: MONGO_PASS
+          value: password
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /api/all
+            port: 4000
+            scheme: HTTP
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+        ports:
+           - name : "nodejs-port"
+             containerPort: 4000
+        resources:
+          requests:
+            cpu: 200m
+      imagePullSecrets:
+      - name: regcred

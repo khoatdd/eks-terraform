@@ -1,0 +1,15 @@
+---
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: "staging"
+  labels:
+    name: "staging"
+    
+---
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: "production"
+  labels:
+    name: "production"
