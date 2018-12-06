@@ -2,7 +2,7 @@ pipeline {
 
     agent any
     parameters {
-        choice(name: 'TERRAFORM_COMMAND', choices: 'Create\nDestroy\nConfigure', description: 'Specify whether Terraform should create, destroy, or configure the EKS cluster.')
+        choice(name: 'TERRAFORM_COMMAND', choices: 'Create\nDestroy', description: 'Specify whether Terraform should create, destroy, or configure the EKS cluster.')
         string(name: 'NAME_PREFIX',defaultValue: 'zenrooms', description: 'Name prefix for resources. Must be unique among all deployments')
         string(name: 'REGION', defaultValue: 'us-east-2', description: 'AWS Region.')
         string(name: 'MIN_CAPACITY', defaultValue: '1', description: 'Minimum numbers of nodes.')
@@ -56,6 +56,22 @@ pipeline {
                         sh "terraform plan"
                         sh "terraform apply -auto-approve"
                         sh 'ls -l'
+                        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'docker-reg-cred',
+                                usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+                            script {
+                                def eksnoderole = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_node_role")
+                                sh """
+                                    #!/bin/bash
+                                    ekscluster="${params.EKS_CLUSTER_NAME}"
+                                    eksnoderole="${eksnoderole}"
+                                    dockerrepo="docker.io"
+                                    dockeremail="email"
+                                    eksregion="${params.REGION}"             
+                                    chmod +x ./config.sh
+                                    ./config.sh
+                                """
+                            }
+                        }
                     }
                 }
             }
@@ -76,30 +92,6 @@ pipeline {
                         sh "terraform workspace delete ${TF_STATE_ENV}"
                     }
                 }
-            }
-        }
-
-        stage('Configure EKS Cluster') {
-            when { expression { params.TERRAFORM_COMMAND == 'Configure' } }
-            steps {
-                withEnv(["PATH+TF=${tool 'terraform-0.11.8'}"]) {
-                    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'docker-reg-cred',
-                            usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-                        script {
-                            def eksnoderole = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_node_role")
-                            sh """
-                                #!/bin/bash
-                                ekscluster="${params.EKS_CLUSTER_NAME}"
-                                eksnoderole="${eksnoderole}"
-                                dockerrepo="docker.io"
-                                dockeremail="email"
-                                eksregion="${params.REGION}"             
-                                chmod +x ./config.sh
-                                ./config.sh
-                            """
-                        }
-                    }
-                }    
             }
         }
     }
