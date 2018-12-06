@@ -59,10 +59,11 @@ pipeline {
                         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'docker-reg-cred',
                                 usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
                             script {
+                                def ekscluster = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_cluster")
                                 def eksnoderole = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_node_role")
                                 sh """
                                     #!/bin/bash
-                                    ekscluster="${params.EKS_CLUSTER_NAME}"
+                                    ekscluster="${ekscluster}"
                                     eksnoderole="${eksnoderole}"
                                     dockerrepo="docker.io"
                                     dockeremail="email"
