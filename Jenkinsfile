@@ -59,22 +59,20 @@ pipeline {
                         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'docker-reg-cred',
                                 usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
                             script {
-                                def ekscluster = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_cluster")
+                                def ekscluster  = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_cluster")
                                 def eksnoderole = sh(returnStdout:true, script: "terraform output -module=eks_cluster eks_node_role")
+                                def eksregion   = "${params.REGION}"
                                 sh """
                                     #!/bin/bash
-                                    ekscluster="${ekscluster}"
-                                    eksnoderole="${eksnoderole}"
                                     dockerrepo="docker.io"
                                     dockeremail="email"
-                                    eksregion="${params.REGION}"             
 
-                                    aws-iam-authenticator init -i $ekscluster
-                                    aws eks update-kubeconfig --name $ekscluster --r $eksregion
+                                    aws-iam-authenticator init -i ${ekscluster}
+                                    aws eks update-kubeconfig --name ${ekscluster} --r ${eksregion}
 
                                     kubectl delete secrets regcred || true
-                                    docker login -u $USERNAME -p $PASSWORD docker.io
-                                    kubectl create secret docker-registry regcred --docker-server=$dockerrepo --docker-username=$USERNAME --docker-password=$PASSWORD --docker-email=$dockeremail || true
+                                    docker login -u ${USERNAME} -p ${PASSWORD} docker.io
+                                    kubectl create secret docker-registry regcred --docker-server=\$dockerrepo --docker-username=${USERNAME} --docker-password=${PASSWORD} --docker-email=\$dockeremail || true
 
                                     cd
 
@@ -86,7 +84,7 @@ metadata:
     namespace: kube-system
 data:
     mapRoles: |
-    - rolearn: $eksnoderole
+    - rolearn: ${eksnoderole}
         username: system:node:{{EC2PrivateDNSName}}
         groups:
         - system:bootstrappers
